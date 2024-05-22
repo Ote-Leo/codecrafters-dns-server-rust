@@ -1,6 +1,9 @@
 use std::net::UdpSocket;
 
-use dns_starter_rust::{self, message::HeaderBuilder};
+use dns_starter_rust::{
+    self,
+    message::{Message, QuestionClass, QuestionType},
+};
 
 fn main() -> anyhow::Result<()> {
     let udp_socket = UdpSocket::bind("127.0.0.1:2053").expect("Failed to bind to address");
@@ -12,7 +15,9 @@ fn main() -> anyhow::Result<()> {
                 println!("Received {} bytes from {}", size, source);
                 let id = u16::from_be_bytes(buf[..2].try_into()?);
 
-                let response: [u8; 12] = HeaderBuilder::new().id(id).build().into();
+                let mut message = Message::new(id);
+                message.ask("codecrafters.io", QuestionType::A, QuestionClass::IN);
+                let response: Vec<u8> = message.into();
                 udp_socket
                     .send_to(&response, source)
                     .expect("Failed to send response");
