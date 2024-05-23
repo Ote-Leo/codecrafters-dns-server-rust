@@ -2,7 +2,8 @@ use std::net::{Ipv4Addr, UdpSocket};
 
 use anyhow::Context;
 use dns_starter_rust::message::{
-    Label, Message, QuestionClass, QuestionType, ResourceClass, ResourceData, ResourceRecord,
+    HeaderError, Label, Message, OperationCode, QuestionClass, QuestionType, ResourceClass,
+    ResourceData, ResourceRecord,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -19,6 +20,11 @@ fn main() -> anyhow::Result<()> {
 
                 message.header.question_count = 0;
                 message.questions.clear();
+
+                match message.header.operation_code {
+                    OperationCode::StandardQuery => message.header.response = Ok(()),
+                    _ => message.header.response = Err(HeaderError::NotImplemented),
+                }
 
                 message
                     .ask("codecrafters.io", QuestionType::A, QuestionClass::IN)
