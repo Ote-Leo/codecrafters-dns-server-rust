@@ -41,10 +41,12 @@
 //! [`QTYPE`]: question::Question::typ
 //! [`QCLASS`]: question::Question::class
 pub mod header;
+pub mod label;
 pub mod question;
 pub mod type_class;
 
 pub use header::*;
+pub use label::*;
 pub use question::*;
 pub use type_class::*;
 
@@ -65,11 +67,17 @@ impl Message {
     /// Add a [`Question`] to the message
     ///
     /// The `name` is split around `.` and stored as a sequence of labels
-    pub fn ask(&mut self, name: &str, typ: QuestionType, class: QuestionClass) {
+    pub fn ask(
+        &mut self,
+        name: &str,
+        typ: QuestionType,
+        class: QuestionClass,
+    ) -> Result<(), LabelError> {
         self.header.question_count += 1;
 
-        let name = name.split('.').map(String::from).collect::<Vec<_>>();
+        let name = Label::parse_str(name)?;
         self.questions.push(Question { name, typ, class });
+        Ok(())
     }
 }
 
@@ -81,8 +89,7 @@ impl From<Message> for Vec<u8> {
         buf.extend_from_slice(&header);
 
         for question in value.questions.into_iter() {
-            let question: Vec<u8> = question.into();
-            buf.extend(question);
+            buf.extend::<Vec<_>>(question.into());
         }
 
         buf
