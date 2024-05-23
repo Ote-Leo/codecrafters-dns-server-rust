@@ -383,7 +383,7 @@ impl From<Header> for [u8; 12] {
         let flags = {
             // Following the naming convension of <https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1>
             let qr = (header.typ as u16) << 15;
-            let opcode = (header.operation_code as u16) << 14;
+            let opcode = (header.operation_code as u16) << 11;
             let aa = (header.authoritative_answer as u16) << 10;
             let tc = (header.truncated_message as u16) << 9;
             let rd = (header.recursion_desired as u16) << 8;
