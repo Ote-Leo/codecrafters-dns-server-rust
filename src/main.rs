@@ -28,6 +28,8 @@ fn main() -> anyhow::Result<()> {
                     data: ResourceData::Address(Ipv4Addr::new(8, 8, 8, 8)),
                 });
 
+                message.respond();
+
                 let response: Vec<u8> = message.into();
                 udp_socket
                     .send_to(&response, source)

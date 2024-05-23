@@ -78,6 +78,16 @@ impl Message {
         }
     }
 
+    /// Set the message type to [`query`][PacketType::Query]
+    pub fn query(&mut self) {
+        self.header.typ = PacketType::Query;
+    }
+
+    /// Set the message type to [`response`][PacketType::Response]
+    pub fn respond(&mut self) {
+        self.header.typ = PacketType::Response;
+    }
+
     /// Add a [`Question`] to the message [`questions`][Self::questions]
     ///
     /// The `name` is split around `.` and stored as a sequence of labels
