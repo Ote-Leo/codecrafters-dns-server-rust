@@ -1,6 +1,8 @@
-//! The question section is used to carry the "question" in most queries, i.e., the parameters that
-//! define what is being asked.  The section contains [`QDCOUNT`] (usually 1) entries, each of the
-//! following format:
+//! The question section contains fields that describe a question to a name server.  These fields
+//! are a query type (QTYPE), a query class (QCLASS), and a query domain name (QNAME)./! The
+//! [`question section`] is used to carry the [`Question`] in most queries, i.e., the
+//! parameters that define what is being asked.  The section contains [`QDCOUNT`] (usually 1)
+//! entries, each of the following format:
 //!
 //!                                     1  1  1  1  1  1
 //!       0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
@@ -15,6 +17,7 @@
 //!     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 //!
 //! [`QDCOUNT`]: super::header::Header::question_count
+//! [`question section`]: super::Message::questions
 
 use std::{
     error::Error,
