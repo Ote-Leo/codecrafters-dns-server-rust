@@ -95,24 +95,21 @@ impl Message {
     }
 
     /// Add a [`ResourceRecord`] to the message [`answers`][Self::answers]
-    pub fn answer(&mut self, rr: ResourceRecord) -> Result<(), LabelError> {
+    pub fn answer(&mut self, rr: ResourceRecord) {
         self.header.answer_count += 1;
         self.answers.push(rr);
-        Ok(())
     }
 
     /// Add a [`ResourceRecord`] to the message [`authorities`][Self::authorities]
-    pub fn authorize(&mut self, rr: ResourceRecord) -> Result<(), LabelError> {
+    pub fn authorize(&mut self, rr: ResourceRecord) {
         self.header.authority_count += 1;
         self.authorities.push(rr);
-        Ok(())
     }
 
     /// Add a [`ResourceRecord`] to the message [`additionals`][Self::additionals]
-    pub fn add(&mut self, rr: ResourceRecord) -> Result<(), LabelError> {
+    pub fn add(&mut self, rr: ResourceRecord) {
         self.header.addtional_count += 1;
         self.additionals.push(rr);
-        Ok(())
     }
 }
 

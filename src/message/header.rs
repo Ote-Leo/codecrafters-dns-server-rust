@@ -321,7 +321,10 @@ impl TryFrom<[u8; 12]> for Header {
 
         match ((flags & 0b0000_0000_0111_0000) >> 4) as u8 {
             0 => (),
-            code => return Err(ReservedZFlag(code)),
+            code => {
+                eprintln!("the 'z' flag was set to {code}, but should've remained as zero");
+                // return Err(ReservedZFlag(code)),
+            }
         }
 
         let response = match (flags & 0b0000_0000_0000_1111) as u8 {
