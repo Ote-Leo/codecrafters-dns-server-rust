@@ -134,6 +134,18 @@ impl From<Message> for Vec<u8> {
             buf.extend::<Vec<_>>(question.into());
         }
 
+        for answer in value.answers.into_iter() {
+            buf.extend::<Vec<_>>(answer.into());
+        }
+
+        for authority in value.authorities.into_iter() {
+            buf.extend::<Vec<_>>(authority.into());
+        }
+
+        for additional in value.additionals.into_iter() {
+            buf.extend::<Vec<_>>(additional.into());
+        }
+
         buf
     }
 }
