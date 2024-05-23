@@ -24,6 +24,7 @@ use std::{
 
 use bytes::{Buf, BufMut};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Header {
     /// A random identifier is assigned to query packets. Response packets must reply with the same
     /// id. This is needed to differentiate responses due to the stateless nature of UDP.
@@ -54,7 +55,7 @@ pub struct Header {
     pub recursion_available: bool,
 
     /// Response status code.
-    pub response: Result<(), MessageError>,
+    pub response: Result<(), HeaderError>,
 
     /// The number of entries in the question section.
     pub question_count: u16,
@@ -84,7 +85,7 @@ pub struct HeaderBuilder {
     truncated_message: Option<bool>,
     recursion_desired: Option<bool>,
     recursion_available: Option<bool>,
-    response: Option<MessageError>,
+    response: Option<HeaderError>,
     question_count: Option<u16>,
     answer_count: Option<u16>,
     authority_count: Option<u16>,
@@ -152,7 +153,7 @@ impl HeaderBuilder {
         }
     }
 
-    pub fn response(self, response: Option<MessageError>) -> Self {
+    pub fn response(self, response: Option<HeaderError>) -> Self {
         Self { response, ..self }
     }
 
@@ -218,7 +219,7 @@ pub enum OperationCode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
-pub enum MessageError {
+pub enum HeaderError {
     /// The name server was unable to interpret the query.
     Format = 1,
 
@@ -237,9 +238,9 @@ pub enum MessageError {
     Resfused,
 }
 
-impl Display for MessageError {
+impl Display for HeaderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use MessageError::*;
+        use HeaderError::*;
         match self {
             Format => "The name server was unable to interpret the query.".fmt(f),
             ServerFailure => "The name server was unable to process this query due to a problem with the name server.".fmt(f),
@@ -250,10 +251,10 @@ impl Display for MessageError {
     }
 }
 
-impl Error for MessageError {}
+impl Error for HeaderError {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HeaderParserError {
+pub enum HeaderParseError {
     /// Parsing a header from a slice that isn't of size 12
     SliceSizeMismatch(usize),
     /// Using a reserved operation code (i.e. in range `(3..15)`)
@@ -264,9 +265,9 @@ pub enum HeaderParserError {
     ReservedZFlag(u8),
 }
 
-impl Display for HeaderParserError {
+impl Display for HeaderParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use HeaderParserError::*;
+        use HeaderParseError::*;
         match self {
             SliceSizeMismatch(size) => {
                 format!("a header must consist of 12 bytes, but found '{size}'").fmt(f)
@@ -284,14 +285,14 @@ impl Display for HeaderParserError {
     }
 }
 
-impl Error for HeaderParserError {}
+impl Error for HeaderParseError {}
 
 impl TryFrom<[u8; 12]> for Header {
-    type Error = HeaderParserError;
+    type Error = HeaderParseError;
 
     fn try_from(value: [u8; 12]) -> Result<Self, Self::Error> {
-        use HeaderParserError::*;
-        use MessageError::*;
+        use HeaderError::*;
+        use HeaderParseError::*;
         use OperationCode::*;
         use PacketType::*;
 
@@ -356,10 +357,10 @@ impl TryFrom<[u8; 12]> for Header {
 }
 
 impl TryFrom<&[u8]> for Header {
-    type Error = HeaderParserError;
+    type Error = HeaderParseError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        use HeaderParserError::SliceSizeMismatch;
+        use HeaderParseError::SliceSizeMismatch;
         let buf: Result<[u8; 12], _> = value.try_into();
 
         match buf {

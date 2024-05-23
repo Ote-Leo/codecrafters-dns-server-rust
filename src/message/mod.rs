@@ -50,6 +50,7 @@ pub use label::*;
 pub use question::*;
 pub use type_class::*;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Message {
     pub header: Header,
     pub questions: Vec<Question>,

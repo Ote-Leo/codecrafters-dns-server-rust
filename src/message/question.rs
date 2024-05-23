@@ -1,6 +1,4 @@
-//! The question section contains fields that describe a question to a name server.  These fields
-//! are a query type (QTYPE), a query class (QCLASS), and a query domain name (QNAME)./! The
-//! [`question section`] is used to carry the [`Question`] in most queries, i.e., the
+//! The [`question section`] is used to carry the [`Question`] in most queries, i.e., the
 //! parameters that define what is being asked.  The section contains [`QDCOUNT`] (usually 1)
 //! entries, each of the following format:
 //!
@@ -31,6 +29,7 @@ use super::{
     type_class::{QuestionClass, QuestionType, UnregisteredClass, UnregisteredType},
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Question {
     /// A domain name represented as a sequence of labels, where each label consists of a length
     /// octet followed by that number of octets.  The domain name terminates with the zero length
