@@ -36,7 +36,7 @@ impl Display for LabelError {
 impl Error for LabelError {}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Label(Vec<CharacterString>);
+pub struct Label(pub Vec<CharacterString>);
 
 impl Label {
     /// Splits the input around b'.' to create a sequence of [`CharacterString`]s.
@@ -44,8 +44,11 @@ impl Label {
         let mut buf = vec![];
 
         for string in value.split(|&e| e == b'.').into_iter() {
-            let string = string.try_into()?;
-            buf.push(string);
+            match string.len() {
+                0 => return Err(LabelError::IncompleteBuffer),
+                length if length > 255 => return Err(LabelError::MaxSizeReached(length)),
+                _ => buf.push(CharacterString(string.to_owned())),
+            }
         }
 
         Ok(Self(buf))
@@ -82,31 +85,37 @@ impl Label {
     }
 }
 
+pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
+    use LabelError::*;
+    let mut buf = value;
+    let mut labels = vec![];
+    let mut offset = 0;
+
+    loop {
+        if buf.is_empty() {
+            return Err(IncompleteBuffer);
+        }
+
+        match buf[0] {
+            0 => break,
+            _ => {
+                let (string, len) = parse_character_string(buf)?;
+                labels.push(string);
+                buf = &buf[len..];
+                offset += len;
+            }
+        }
+    }
+
+    Ok((Label(labels), offset + 1))
+}
+
 impl TryFrom<&[u8]> for Label {
     type Error = LabelError;
 
     /// Handels raw binary input as a stream of <length><character-string>
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        use LabelError::*;
-        let mut buf = value;
-        let mut labels = vec![];
-
-        loop {
-            if buf.is_empty() {
-                return Err(IncompleteBuffer);
-            }
-
-            match buf[0] {
-                0 => break,
-                length if buf.len() > length as usize => {
-                    labels.push(buf[1..(length + 1) as usize].try_into()?);
-                    buf = &buf[(length + 1) as usize..];
-                }
-                length => return Err(FalseEncodedLength(length)),
-            }
-        }
-
-        Ok(Self(labels))
+        parse_label(value).map(|t| t.0)
     }
 }
 
@@ -127,17 +136,13 @@ impl From<Label> for Vec<u8> {
 /// CharacterStrings are treated as binary information, and can be up to 256 characters in length
 /// (including the length octet)
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct CharacterString(Vec<u8>);
+pub struct CharacterString(pub Vec<u8>);
 
 impl TryFrom<&str> for CharacterString {
     type Error = LabelError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        use LabelError::MaxSizeReached;
-        Ok(match value.len() {
-            length if length > 255 => return Err(MaxSizeReached(length)),
-            _ => CharacterString(value.as_bytes().to_owned()),
-        })
+        value.as_bytes().try_into()
     }
 }
 
@@ -145,12 +150,22 @@ impl TryFrom<&[u8]> for CharacterString {
     type Error = LabelError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        use LabelError::MaxSizeReached;
-        Ok(match value.len() {
-            length if length > 255 => return Err(MaxSizeReached(length)),
-            _ => CharacterString(value.to_owned()),
-        })
+        parse_character_string(value).map(|t| t.0)
     }
+}
+
+pub fn parse_character_string(value: &[u8]) -> Result<(CharacterString, usize), LabelError> {
+    use LabelError::*;
+    Ok(match value.len() {
+        0 => return Err(IncompleteBuffer),
+        length if length > 255 => return Err(MaxSizeReached(length)),
+        length => match value[0] as usize {
+            count if count <= length - 1 => {
+                (CharacterString(value[1..count + 1].to_owned()), count + 1)
+            }
+            count => return Err(FalseEncodedLength(count as u8)),
+        },
+    })
 }
 
 impl From<CharacterString> for Vec<u8> {

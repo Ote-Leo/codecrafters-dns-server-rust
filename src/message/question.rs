@@ -24,6 +24,8 @@ use std::{
 
 use bytes::{Buf, BufMut};
 
+use crate::message::parse_label;
+
 use super::{
     label::{Label, LabelError},
     type_class::{QuestionClass, QuestionType, UnregisteredClass, UnregisteredType},
@@ -87,31 +89,35 @@ impl Display for QuestionParseError {
 
 impl Error for QuestionParseError {}
 
+pub fn parse_question(value: &[u8]) -> Result<(Question, usize), QuestionParseError> {
+    use QuestionParseError::{MissingClass, MissingTypeAndClass};
+
+    let mut buf = value;
+
+    // reading labels
+    let (name, offset) = parse_label(buf)?;
+    buf = &buf[offset..];
+
+    // reading type and class
+    let typ;
+    let class;
+    match buf.len() {
+        0 | 1 => return Err(MissingTypeAndClass),
+        2 | 3 => return Err(MissingClass),
+        _ => {
+            typ = buf.get_u16().try_into()?;
+            class = buf.get_u16().try_into()?;
+        }
+    }
+
+    Ok((Question { name, typ, class }, buf.remaining()))
+}
+
 impl TryFrom<&[u8]> for Question {
     type Error = QuestionParseError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        use QuestionParseError::{MissingClass, MissingTypeAndClass};
-
-        let mut buf = value;
-
-        // reading labels
-        let name = Label::try_from(buf)?;
-        buf = &buf[name.original_len() - 1..];
-
-        // reading type and class
-        let typ;
-        let class;
-        match buf.len() {
-            0 | 1 => return Err(MissingTypeAndClass),
-            2 | 3 => return Err(MissingClass),
-            _ => {
-                typ = buf.get_u16().try_into()?;
-                class = buf.get_u16().try_into()?;
-            }
-        }
-
-        Ok(Self { name, typ, class })
+        parse_question(value).map(|t| t.0)
     }
 }
 
