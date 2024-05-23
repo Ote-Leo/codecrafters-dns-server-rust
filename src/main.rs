@@ -17,6 +17,9 @@ fn main() -> anyhow::Result<()> {
                 let mut message: Message =
                     buf[..size].try_into().context("decoding query message")?;
 
+                message.header.question_count = 0;
+                message.questions.clear();
+
                 message
                     .ask("codecrafters.io", QuestionType::A, QuestionClass::IN)
                     .context("sending `codecrafters.io` question")?;
