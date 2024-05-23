@@ -43,17 +43,27 @@
 pub mod header;
 pub mod label;
 pub mod question;
+pub mod resource;
 pub mod type_class;
+
+use std::{
+    error::Error,
+    fmt::{self, Display},
+};
 
 pub use header::*;
 pub use label::*;
 pub use question::*;
+pub use resource::*;
 pub use type_class::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Message {
     pub header: Header,
     pub questions: Vec<Question>,
+    pub answers: Vec<ResourceRecord>,
+    pub authorities: Vec<ResourceRecord>,
+    pub additionals: Vec<ResourceRecord>,
 }
 
 impl Message {
@@ -62,10 +72,13 @@ impl Message {
         Self {
             header: HeaderBuilder::new().id(id).build(),
             questions: vec![],
+            answers: vec![],
+            authorities: vec![],
+            additionals: vec![],
         }
     }
 
-    /// Add a [`Question`] to the message
+    /// Add a [`Question`] to the message [`questions`][Self::questions]
     ///
     /// The `name` is split around `.` and stored as a sequence of labels
     pub fn ask(
@@ -78,6 +91,27 @@ impl Message {
 
         let name = Label::parse_str(name)?;
         self.questions.push(Question { name, typ, class });
+        Ok(())
+    }
+
+    /// Add a [`ResourceRecord`] to the message [`answers`][Self::answers]
+    pub fn answer(&mut self, rr: ResourceRecord) -> Result<(), LabelError> {
+        self.header.answer_count += 1;
+        self.answers.push(rr);
+        Ok(())
+    }
+
+    /// Add a [`ResourceRecord`] to the message [`authorities`][Self::authorities]
+    pub fn authorize(&mut self, rr: ResourceRecord) -> Result<(), LabelError> {
+        self.header.authority_count += 1;
+        self.authorities.push(rr);
+        Ok(())
+    }
+
+    /// Add a [`ResourceRecord`] to the message [`additionals`][Self::additionals]
+    pub fn add(&mut self, rr: ResourceRecord) -> Result<(), LabelError> {
+        self.header.addtional_count += 1;
+        self.additionals.push(rr);
         Ok(())
     }
 }
@@ -94,5 +128,94 @@ impl From<Message> for Vec<u8> {
         }
 
         buf
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MessageParseError {
+    /// Messages are at least 12 bytes
+    ShortBuffer,
+    Header(HeaderParseError),
+    Resource(ResourceRecordError),
+    Question(QuestionParseError),
+}
+
+impl From<HeaderParseError> for MessageParseError {
+    fn from(value: HeaderParseError) -> Self {
+        Self::Header(value)
+    }
+}
+
+impl From<ResourceRecordError> for MessageParseError {
+    fn from(value: ResourceRecordError) -> Self {
+        Self::Resource(value)
+    }
+}
+
+impl From<QuestionParseError> for MessageParseError {
+    fn from(value: QuestionParseError) -> Self {
+        Self::Question(value)
+    }
+}
+
+impl Display for MessageParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MessageParseError::ShortBuffer => "messages must be at least 12 bytes".fmt(f),
+            MessageParseError::Header(err) => err.fmt(f),
+            MessageParseError::Resource(err) => err.fmt(f),
+            MessageParseError::Question(err) => err.fmt(f),
+        }
+    }
+}
+
+impl Error for MessageParseError {}
+
+impl TryFrom<&[u8]> for Message {
+    type Error = MessageParseError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() < 13 {
+            return Err(MessageParseError::ShortBuffer);
+        }
+        let header: Header = value[..12].try_into()?;
+
+        let mut buf = &value[12..];
+
+        let mut questions = vec![];
+        for _ in 0..header.question_count {
+            let (question, offset) = parse_question(buf)?;
+            questions.push(question);
+            buf = &buf[offset..];
+        }
+
+        let mut answers = vec![];
+        for _ in 0..header.answer_count {
+            let (answer, offset) = parse_resource_record(buf)?;
+            answers.push(answer);
+            buf = &buf[offset..];
+        }
+
+        let mut authorities = vec![];
+        for _ in 0..header.authority_count {
+            let (authority, offset) = parse_resource_record(buf)?;
+            authorities.push(authority);
+            buf = &buf[offset..];
+        }
+
+        let mut additionals = vec![];
+        for _ in 0..header.addtional_count {
+            let (additional, offset) = parse_resource_record(buf)?;
+            additionals.push(additional);
+            buf = &buf[offset..];
+        }
+
+        Ok(Self {
+            header,
+            questions,
+            answers,
+            authorities,
+            additionals,
+        })
     }
 }
