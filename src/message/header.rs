@@ -215,6 +215,19 @@ pub enum OperationCode {
     StandardQuery,
     InverseQuery,
     StatusRequest,
+    Reserved(u16),
+}
+
+impl From<OperationCode> for u16 {
+    fn from(value: OperationCode) -> Self {
+        use OperationCode::*;
+        match value {
+            StandardQuery => 0,
+            InverseQuery => 1,
+            StatusRequest => 2,
+            Reserved(code) => code,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -311,7 +324,11 @@ impl TryFrom<[u8; 12]> for Header {
             0 => StandardQuery,
             1 => InverseQuery,
             2 => StatusRequest,
-            code => return Err(ReservedOperationCode(code)),
+            code => {
+                eprintln!("using fucking reserved operation code");
+                Reserved(code as u16)
+                // return Err(ReservedOperationCode(code)),
+            }
         };
 
         let authoritative_answer = (flags & 0b0000_0100_0000_0000) != 0;
@@ -383,7 +400,7 @@ impl From<Header> for [u8; 12] {
         let flags = {
             // Following the naming convension of <https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1>
             let qr = (header.typ as u16) << 15;
-            let opcode = (header.operation_code as u16) << 11;
+            let opcode = u16::from(header.operation_code) << 11;
             let aa = (header.authoritative_answer as u16) << 10;
             let tc = (header.truncated_message as u16) << 9;
             let rd = (header.recursion_desired as u16) << 8;
@@ -409,33 +426,7 @@ impl From<Header> for [u8; 12] {
 
 impl From<Header> for Vec<u8> {
     fn from(header: Header) -> Self {
-        let mut buf = vec![];
-
-        buf.put_u16(header.id);
-
-        let flags = {
-            // Following the naming convension of <https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1>
-            let qr = (header.typ as u16) << 15;
-            let opcode = (header.operation_code as u16) << 14;
-            let aa = (header.authoritative_answer as u16) << 10;
-            let tc = (header.truncated_message as u16) << 9;
-            let rd = (header.recursion_desired as u16) << 8;
-            let ra = (header.recursion_available as u16) << 7;
-            let z = 0;
-            let rcode = match header.response {
-                Ok(_) => 0,
-                Err(code) => code as u16,
-            };
-
-            qr | opcode | aa | tc | rd | ra | z | rcode
-        };
-        buf.put_u16(flags);
-
-        buf.put_u16(header.question_count);
-        buf.put_u16(header.answer_count);
-        buf.put_u16(header.authority_count);
-        buf.put_u16(header.addtional_count);
-
-        buf
+        let buf: [u8; 12] = header.into();
+        buf.to_vec()
     }
 }
