@@ -77,7 +77,7 @@ pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
         match buf[0] {
             length if (length & 0b1100_0000) >> 6 == 3 => {
                 let offset = buf.get_u16() ^ 0b1100_0000_0000_0000;
-                (Label::Compressed(offset), buf.remaining())
+                (Label::Compressed(offset), 2)
             }
             _ => {
                 let mut labels = vec![];
