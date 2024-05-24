@@ -80,9 +80,13 @@ pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
             0 => break,
             _ => {
                 let (string, len) = parse_character_string(buf)?;
-                labels.push(string);
                 buf = &buf[len..];
                 offset += len;
+                if let CharacterString::Compressed(_) = string {
+                    labels.push(string);
+                    return Ok((Label(labels), offset + 1));
+                }
+                labels.push(string);
             }
         }
     }
@@ -102,10 +106,18 @@ impl TryFrom<&[u8]> for Label {
 impl From<Label> for Vec<u8> {
     fn from(value: Label) -> Self {
         let mut buf = vec![];
+
+        let last = value.0.last().map(Clone::clone);
+
         for string in value.0.into_iter() {
             let bytes: Vec<u8> = string.into();
             buf.extend(bytes);
         }
+
+        if let Some(CharacterString::Compressed(_)) = last {
+            return buf;
+        }
+
         buf.put_u8(0);
         buf
     }
@@ -138,6 +150,7 @@ impl TryFrom<&[u8]> for CharacterString {
 }
 
 pub fn parse_character_string(value: &[u8]) -> Result<(CharacterString, usize), LabelError> {
+    use CharacterString::*;
     use LabelError::*;
     let mut buf = value;
     Ok(match value.len() {
@@ -146,12 +159,9 @@ pub fn parse_character_string(value: &[u8]) -> Result<(CharacterString, usize), 
         length => match value[0] as usize {
             count if (count & 0b1100_0000) >> 6 == 3 => {
                 let offset = buf.get_u16() ^ 0b1100_0000_0000_0000;
-                (CharacterString::Compressed(offset), 2)
+                (Compressed(offset), 2)
             }
-            count if count < length => (
-                CharacterString::String(value[1..count + 1].to_owned()),
-                count + 1,
-            ),
+            count if count < length => (String(value[1..count + 1].to_owned()), count + 1),
             count => return Err(FalseEncodedLength(count as u8)),
         },
     })
