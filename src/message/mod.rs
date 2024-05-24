@@ -200,33 +200,47 @@ impl TryFrom<&[u8]> for Message {
         let header: Header = value[..12].try_into()?;
 
         let mut buf = &value[12..];
+        eprintln!("header: {header:?}");
+        eprintln!("buf: {buf:?}");
 
+        eprintln!("parsing questions");
         let mut questions = vec![];
         for _ in 0..header.question_count {
             let (question, offset) = parse_question(buf)?;
+            eprintln!("question: {question:?}");
             questions.push(question);
             buf = &buf[offset..];
+            eprintln!("buf: {buf:?}");
         }
 
+        eprintln!("parsing answers");
         let mut answers = vec![];
         for _ in 0..header.answer_count {
             let (answer, offset) = parse_resource_record(buf)?;
+            eprintln!("answer: {answer:?}");
             answers.push(answer);
             buf = &buf[offset..];
+            eprintln!("buf: {buf:?}");
         }
 
+        eprintln!("parsing authorities");
         let mut authorities = vec![];
         for _ in 0..header.authority_count {
             let (authority, offset) = parse_resource_record(buf)?;
+            eprintln!("authority: {authority:?}");
             authorities.push(authority);
             buf = &buf[offset..];
+            eprintln!("buf: {buf:?}");
         }
 
+        eprintln!("parsing additionals");
         let mut additionals = vec![];
         for _ in 0..header.addtional_count {
             let (additional, offset) = parse_resource_record(buf)?;
+            eprintln!("additional: {additional:?}");
             additionals.push(additional);
             buf = &buf[offset..];
+            eprintln!("buf: {buf:?}");
         }
 
         Ok(Self {
