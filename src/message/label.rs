@@ -48,7 +48,7 @@ impl Label {
     pub fn parse(value: &[u8]) -> Result<Self, LabelError> {
         let mut buf = vec![];
 
-        for string in value.split(|&e| e == b'.').into_iter() {
+        for string in value.split(|&e| e == b'.') {
             match string.len() {
                 0 => return Err(LabelError::IncompleteBuffer),
                 length if length > 255 => return Err(LabelError::MaxSizeReached(length)),
@@ -166,9 +166,7 @@ pub fn parse_character_string(value: &[u8]) -> Result<(CharacterString, usize), 
         0 => return Err(IncompleteBuffer),
         length if length > 255 => return Err(MaxSizeReached(length)),
         length => match value[0] as usize {
-            count if count <= length - 1 => {
-                (CharacterString(value[1..count + 1].to_owned()), count + 1)
-            }
+            count if count < length => (CharacterString(value[1..count + 1].to_owned()), count + 1),
             count => return Err(FalseEncodedLength(count as u8)),
         },
     })
