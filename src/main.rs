@@ -17,19 +17,25 @@ fn main() -> anyhow::Result<()> {
                 let mut message: Message =
                     buf[..size].try_into().context("decoding query message")?;
 
-                let name = message.questions[0].name.clone();
-
                 match message.header.operation_code {
                     OperationCode::StandardQuery => message.header.response = Ok(()),
                     _ => message.header.response = Err(HeaderError::NotImplemented),
                 }
 
-                message.answer(ResourceRecord {
-                    name,
-                    class: ResourceClass::IN,
-                    time_to_live: 60,
-                    data: ResourceData::Address(Ipv4Addr::new(8, 8, 8, 8)),
-                });
+                let answers = message
+                    .questions
+                    .iter()
+                    .map(|q| ResourceRecord {
+                        name: q.name.clone(),
+                        class: ResourceClass::IN,
+                        time_to_live: 60,
+                        data: ResourceData::Address(Ipv4Addr::new(8, 8, 8, 8)),
+                    })
+                    .collect::<Vec<_>>();
+
+                for answer in answers.into_iter() {
+                    message.answer(answer);
+                }
 
                 message.respond();
 

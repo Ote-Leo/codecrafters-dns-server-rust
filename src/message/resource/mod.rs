@@ -414,8 +414,8 @@ impl ResourceData {
     }
 
     fn parse_mail_info(value: &[u8]) -> Result<ResourceData, ResourceDataError> {
-        let mailbox = Label::try_from(value)?;
-        let error_mailbox = Label::try_from(&value[mailbox.original_len()..])?;
+        let (mailbox, offset) = parse_label(value)?;
+        let error_mailbox = Label::try_from(&value[offset..])?;
         Ok(Self::MailInfo {
             mailbox,
             error_mailbox,
@@ -516,8 +516,8 @@ impl From<UnregisteredClass> for ResourceRecordError {
 
 pub fn parse_resource_record(value: &[u8]) -> Result<(ResourceRecord, usize), ResourceRecordError> {
     use ResourceData::*;
-    let name = Label::try_from(value)?;
-    let mut buf = &value[name.original_len()..];
+    let (name, offset) = parse_label(value)?;
+    let mut buf = &value[offset..];
 
     let typ: ResourceType = buf.get_u16().try_into()?;
     let class = buf.get_u16().try_into()?;
