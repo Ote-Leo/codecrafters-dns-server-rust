@@ -35,13 +35,8 @@ impl Display for LabelError {
 
 impl Error for LabelError {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Label {
-    /// Raw [`CharacterString`] sequence
-    Sequence(Vec<CharacterString>),
-    /// An offset for the label
-    Compressed(u16),
-}
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Label(pub Vec<CharacterString>);
 
 impl Label {
     /// Splits the input around b'.' to create a sequence of [`CharacterString`]s.
@@ -52,60 +47,47 @@ impl Label {
             match string.len() {
                 0 => return Err(LabelError::IncompleteBuffer),
                 length if length > 255 => return Err(LabelError::MaxSizeReached(length)),
-                _ => buf.push(CharacterString(string.to_owned())),
+                _ => buf.push(CharacterString::String(string.to_owned())),
             }
         }
 
-        Ok(Self::Sequence(buf))
+        Ok(Self(buf))
     }
 
     /// Splits the input around '.' to create a sequence of [`CharacterString`]s.
     pub fn parse_str(value: &str) -> Result<Self, LabelError> {
         Self::parse(value.as_bytes())
     }
+
+    /// The number of domain sotred inside the label
+    pub fn domain_count(&self) -> usize {
+        self.0.len()
+    }
 }
 
 pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
     use LabelError::*;
     let mut buf = value;
+    let mut labels = vec![];
+    let mut offset = 0;
 
-    let res = {
+    loop {
         if buf.is_empty() {
             return Err(IncompleteBuffer);
         }
 
         match buf[0] {
-            length if (length & 0b1100_0000) >> 6 == 3 => {
-                let offset = buf.get_u16() ^ 0b1100_0000_0000_0000;
-                (Label::Compressed(offset), 2)
-            }
+            0 => break,
             _ => {
-                let mut labels = vec![];
-                let mut offset = 0;
-
-                loop {
-                    match buf[0] {
-                        0 => break,
-                        _ => {
-                            let (string, len) = parse_character_string(buf)?;
-                            labels.push(string);
-                            offset += len;
-                            buf = &buf[len..];
-                        }
-                    }
-
-                    if buf.is_empty() {
-                        return Err(IncompleteBuffer);
-                    }
-                }
-                offset += 1;
-
-                (Label::Sequence(labels), offset)
+                let (string, len) = parse_character_string(buf)?;
+                labels.push(string);
+                buf = &buf[len..];
+                offset += len;
             }
         }
-    };
+    }
 
-    Ok(res)
+    Ok((Label(labels), offset + 1))
 }
 
 impl TryFrom<&[u8]> for Label {
@@ -119,20 +101,12 @@ impl TryFrom<&[u8]> for Label {
 
 impl From<Label> for Vec<u8> {
     fn from(value: Label) -> Self {
-        use Label::*;
         let mut buf = vec![];
-
-        match value {
-            Sequence(seq) => {
-                for string in seq.into_iter() {
-                    let bytes: Vec<u8> = string.into();
-                    buf.extend(bytes);
-                }
-                buf.put_u8(0);
-            }
-            Compressed(offset) => buf.put_u16(offset | 0b1100_0000_0000_0000),
+        for string in value.0.into_iter() {
+            let bytes: Vec<u8> = string.into();
+            buf.extend(bytes);
         }
-
+        buf.put_u8(0);
         buf
     }
 }
@@ -142,7 +116,10 @@ impl From<Label> for Vec<u8> {
 /// CharacterStrings are treated as binary information, and can be up to 256 characters in length
 /// (including the length octet)
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CharacterString(pub Vec<u8>);
+pub enum CharacterString {
+    String(Vec<u8>),
+    Compressed(u16),
+}
 
 impl TryFrom<&str> for CharacterString {
     type Error = LabelError;
@@ -162,11 +139,19 @@ impl TryFrom<&[u8]> for CharacterString {
 
 pub fn parse_character_string(value: &[u8]) -> Result<(CharacterString, usize), LabelError> {
     use LabelError::*;
+    let mut buf = value;
     Ok(match value.len() {
         0 => return Err(IncompleteBuffer),
         length if length > 255 => return Err(MaxSizeReached(length)),
         length => match value[0] as usize {
-            count if count < length => (CharacterString(value[1..count + 1].to_owned()), count + 1),
+            count if (count & 0b1100_0000) >> 6 == 3 => {
+                let offset = buf.get_u16() ^ 0b1100_0000_0000_0000;
+                (CharacterString::Compressed(offset), 2)
+            }
+            count if count < length => (
+                CharacterString::String(value[1..count + 1].to_owned()),
+                count + 1,
+            ),
             count => return Err(FalseEncodedLength(count as u8)),
         },
     })
@@ -174,9 +159,16 @@ pub fn parse_character_string(value: &[u8]) -> Result<(CharacterString, usize), 
 
 impl From<CharacterString> for Vec<u8> {
     fn from(value: CharacterString) -> Self {
+        use CharacterString::*;
         let mut buf = vec![];
-        buf.put_u8(value.0.len() as u8);
-        buf.extend(value.0);
+
+        match value {
+            String(string) => {
+                buf.put_u8(string.len() as u8);
+                buf.extend(string);
+            }
+            Compressed(offset) => buf.put_u16(offset | 0b1100_0000_0000_0000),
+        }
         buf
     }
 }
