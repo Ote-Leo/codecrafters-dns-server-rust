@@ -430,3 +430,389 @@ impl From<Header> for Vec<u8> {
         buf.to_vec()
     }
 }
+
+#[cfg(test)]
+mod parsing {
+    use super::*;
+
+    #[test]
+    fn parse_compressed_packet_section_stage() {
+        assert_eq!(
+            Header::try_from([89, 81, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 22865,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([85, 132, 1, 0, 0, 2, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 21892,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 2,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+
+    #[test]
+    fn parse_question_section_stage() {
+        assert_eq!(
+            Header::try_from([37, 206, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 9678,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([235, 215, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 60375,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+
+    #[test]
+    fn parse_header_section_stage() {
+        assert_eq!(
+            Header::try_from([242, 139, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 62091,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 9, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::InverseQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 17, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StatusRequest,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 25, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::Reserved(3),
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: false,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 8, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::InverseQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: false,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 16, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StatusRequest,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: false,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([189, 13, 24, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 48397,
+                typ: PacketType::Query,
+                operation_code: OperationCode::Reserved(3),
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: false,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+
+    #[test]
+    fn write_answer_section_stage() {
+        assert_eq!(
+            Header::try_from([206, 83, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 52819,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([4, 210, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 1234,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+
+    #[test]
+    fn write_question_section_stage() {
+        assert_eq!(
+            Header::try_from([176, 243, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 45299,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([4, 210, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 1234,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+
+    #[test]
+    fn write_header_section_stage() {
+        assert_eq!(
+            Header::try_from([176, 132, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 45188,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+
+        assert_eq!(
+            Header::try_from([4, 210, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 1234,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+
+    #[test]
+    fn setup_udp_server_stage() {
+        assert_eq!(
+            Header::try_from([147, 193, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0]).unwrap(),
+            Header {
+                id: 37825,
+                typ: PacketType::Query,
+                operation_code: OperationCode::StandardQuery,
+                authoritative_answer: false,
+                truncated_message: false,
+                recursion_desired: true,
+                recursion_available: false,
+                response: Ok(()),
+                question_count: 1,
+                answer_count: 0,
+                authority_count: 0,
+                addtional_count: 0
+            }
+        );
+    }
+}
