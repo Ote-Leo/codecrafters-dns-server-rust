@@ -84,7 +84,7 @@ pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
                 offset += len;
                 if let CharacterString::Compressed(_) = string {
                     labels.push(string);
-                    return Ok((Label(labels), offset + 1));
+                    return Ok((Label(labels), offset));
                 }
                 labels.push(string);
             }

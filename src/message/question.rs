@@ -110,7 +110,7 @@ pub fn parse_question(value: &[u8]) -> Result<(Question, usize), QuestionParseEr
         }
     }
 
-    Ok((Question { name, typ, class }, buf.remaining()))
+    Ok((Question { name, typ, class }, (buf.len() - buf.remaining())))
 }
 
 impl TryFrom<&[u8]> for Question {
