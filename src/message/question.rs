@@ -2,6 +2,7 @@
 //! parameters that define what is being asked.  The section contains [`QDCOUNT`] (usually 1)
 //! entries, each of the following format:
 //!
+//! ```txt`
 //!                                     1  1  1  1  1  1
 //!       0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
 //!     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -13,6 +14,7 @@
 //!     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 //!     |                     QCLASS                    |
 //!     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+//! ```
 //!
 //! [`QDCOUNT`]: super::header::Header::question_count
 //! [`question section`]: super::Message::questions
