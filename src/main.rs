@@ -13,6 +13,7 @@ fn main() -> anyhow::Result<()> {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
+                eprintln!("\nPacket: {:?}\n", &buf[..size]);
 
                 let mut message: Message =
                     buf[..size].try_into().context("decoding query message")?;
