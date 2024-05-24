@@ -81,16 +81,15 @@ pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
             }
             _ => {
                 let mut labels = vec![];
+                let mut offset = 0;
 
                 loop {
                     match buf[0] {
-                        0 => {
-                            buf.get_u8();
-                            break;
-                        }
+                        0 => break,
                         _ => {
                             let (string, len) = parse_character_string(buf)?;
                             labels.push(string);
+                            offset += len;
                             buf = &buf[len..];
                         }
                     }
@@ -99,8 +98,9 @@ pub fn parse_label(value: &[u8]) -> Result<(Label, usize), LabelError> {
                         return Err(IncompleteBuffer);
                     }
                 }
+                offset += 1;
 
-                (Label::Sequence(labels), buf.remaining())
+                (Label::Sequence(labels), offset)
             }
         }
     };
