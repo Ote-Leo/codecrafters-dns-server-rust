@@ -113,7 +113,9 @@ fn forward_message(
         socket.send_to(&Vec::from(question_message), address)?;
         let (size, _) = socket.recv_from(&mut inner_buf)?;
         let mut reply = Message::try_from(&inner_buf[..size])?;
-        message.answer(reply.answers.pop().unwrap());
+        if reply.header.answer_count > 0 {
+            message.answer(reply.answers.pop().unwrap());
+        }
     }
 
     match message.header.operation_code {
