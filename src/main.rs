@@ -38,7 +38,7 @@ fn main() -> anyhow::Result<()> {
                 eprintln!("\nPacket: {:?}\n", message_buf);
 
                 let mut message = match resolver {
-                    Some(address) => forward_message(&address, message_buf),
+                    Some(address) => forward_message(&address, &udp_socket, message_buf),
                     None => quick_reply(message_buf),
                 }?;
 
@@ -85,7 +85,11 @@ fn quick_reply(buf: &[u8]) -> anyhow::Result<Message> {
     Ok(message)
 }
 
-fn forward_message(address: &SocketAddrV4, buf: &[u8]) -> anyhow::Result<Message> {
+fn forward_message(
+    address: &SocketAddrV4,
+    socket: &UdpSocket,
+    buf: &[u8],
+) -> anyhow::Result<Message> {
     let mut message: Message = buf.try_into().context("decoding query message")?;
 
     let header = {
@@ -94,11 +98,9 @@ fn forward_message(address: &SocketAddrV4, buf: &[u8]) -> anyhow::Result<Message
         header
     };
 
-    let socket = UdpSocket::bind(address)?;
     let mut inner_buf = [0; 512];
 
     let questions = message.questions.clone();
-
     for question in questions.into_iter() {
         let question_message = Message {
             header: header.clone(),
@@ -108,7 +110,7 @@ fn forward_message(address: &SocketAddrV4, buf: &[u8]) -> anyhow::Result<Message
             additionals: vec![],
         };
 
-        socket.send(&Vec::from(question_message))?;
+        socket.send_to(&Vec::from(question_message), address)?;
         let (size, _) = socket.recv_from(&mut inner_buf)?;
         let mut reply = Message::try_from(&inner_buf[..size])?;
         message.answer(reply.answers.pop().unwrap());
