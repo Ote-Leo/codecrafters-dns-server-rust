@@ -206,7 +206,10 @@ impl TryFrom<&[u8]> for Message {
         eprintln!("parsing questions");
         let mut questions = vec![];
         for _ in 0..header.question_count {
-            let (question, offset) = parse_question(buf)?;
+            let (mut question, offset) = parse_question(buf)?;
+
+            expand_label(&mut question.name, value);
+
             eprintln!("question: {question:?}");
             questions.push(question);
             buf = &buf[offset..];
@@ -216,7 +219,10 @@ impl TryFrom<&[u8]> for Message {
         eprintln!("parsing answers");
         let mut answers = vec![];
         for _ in 0..header.answer_count {
-            let (answer, offset) = parse_resource_record(buf)?;
+            let (mut answer, offset) = parse_resource_record(buf)?;
+
+            expand_label(&mut answer.name, value);
+
             eprintln!("answer: {answer:?}");
             answers.push(answer);
             buf = &buf[offset..];
@@ -226,7 +232,10 @@ impl TryFrom<&[u8]> for Message {
         eprintln!("parsing authorities");
         let mut authorities = vec![];
         for _ in 0..header.authority_count {
-            let (authority, offset) = parse_resource_record(buf)?;
+            let (mut authority, offset) = parse_resource_record(buf)?;
+
+            expand_label(&mut authority.name, value);
+
             eprintln!("authority: {authority:?}");
             authorities.push(authority);
             buf = &buf[offset..];
@@ -236,7 +245,10 @@ impl TryFrom<&[u8]> for Message {
         eprintln!("parsing additionals");
         let mut additionals = vec![];
         for _ in 0..header.addtional_count {
-            let (additional, offset) = parse_resource_record(buf)?;
+            let (mut additional, offset) = parse_resource_record(buf)?;
+
+            expand_label(&mut additional.name, value);
+
             eprintln!("additional: {additional:?}");
             additionals.push(additional);
             buf = &buf[offset..];
@@ -250,5 +262,18 @@ impl TryFrom<&[u8]> for Message {
             authorities,
             additionals,
         })
+    }
+}
+
+fn expand_label(label: &mut Label, buf: &[u8]) {
+    let last = label.0.pop();
+    if let Some(CharacterString::Compressed(offset)) = last {
+        eprintln!("decompressing label at index {offset}");
+        let (expanded_label, _) =
+            parse_label(&buf[offset as usize..]).expect("false compressed offset");
+        label.0.extend(expanded_label.0);
+        expand_label(label, buf) // in-case that the expanded label is also compressed
+    } else if let Some(last) = last {
+        label.0.push(last);
     }
 }
