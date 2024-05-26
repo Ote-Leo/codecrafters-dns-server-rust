@@ -194,7 +194,7 @@ impl TryFrom<&[u8]> for Message {
     type Error = MessageParseError;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if value.len() < 13 {
+        if value.len() < 12 {
             return Err(MessageParseError::ShortBuffer);
         }
         let header: Header = value[..12].try_into()?;
