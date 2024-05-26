@@ -518,33 +518,40 @@ pub fn parse_resource_record(value: &[u8]) -> Result<(ResourceRecord, usize), Re
     use ResourceData::*;
     let (name, offset) = parse_label(value)?;
     let mut buf = &value[offset..];
+    let mut record_offset = offset;
 
     let typ: ResourceType = buf.get_u16().try_into()?;
+    record_offset += 2;
     let class = buf.get_u16().try_into()?;
+    record_offset += 2;
     let time_to_live = buf.get_u32();
+    record_offset += 4;
 
     let mut length = buf.get_u16() as usize;
-    let remaining = buf.len() - buf.remaining();
-    length += remaining;
-    let remaining = &buf[remaining..length];
+    record_offset += 2;
+
+    assert!(length <= buf.remaining());
+
+    buf = &buf[..length];
+    record_offset += length;
 
     let data = match typ {
-        ResourceType::A => ResourceData::parse_address(remaining)?,
-        ResourceType::NS => wrap_label(remaining, NameServer)?,
-        ResourceType::MD => wrap_label(remaining, MailDevice)?,
-        ResourceType::MF => wrap_label(remaining, MailForward)?,
-        ResourceType::CNAME => wrap_label(remaining, CanonicalName)?,
-        ResourceType::SOA => ResourceData::parse_soa(remaining)?,
-        ResourceType::MB => wrap_label(remaining, MailBox)?,
-        ResourceType::MG => wrap_label(remaining, MailGroup)?,
-        ResourceType::MR => wrap_label(remaining, MailRename)?,
-        ResourceType::NULL => Null(remaining.to_vec()),
+        ResourceType::A => ResourceData::parse_address(buf)?,
+        ResourceType::NS => wrap_label(buf, NameServer)?,
+        ResourceType::MD => wrap_label(buf, MailDevice)?,
+        ResourceType::MF => wrap_label(buf, MailForward)?,
+        ResourceType::CNAME => wrap_label(buf, CanonicalName)?,
+        ResourceType::SOA => ResourceData::parse_soa(buf)?,
+        ResourceType::MB => wrap_label(buf, MailBox)?,
+        ResourceType::MG => wrap_label(buf, MailGroup)?,
+        ResourceType::MR => wrap_label(buf, MailRename)?,
+        ResourceType::NULL => Null(buf.to_vec()),
         ResourceType::WKS => todo!("implement wks parser"),
-        ResourceType::PTR => wrap_label(remaining, Ptr)?,
-        ResourceType::HINFO => ResourceData::parse_host_info(remaining)?,
-        ResourceType::MINFO => ResourceData::parse_mail_info(remaining)?,
-        ResourceType::MX => ResourceData::parse_mail_exchange(remaining)?,
-        ResourceType::TXT => ResourceData::parse_text(remaining)?,
+        ResourceType::PTR => wrap_label(buf, Ptr)?,
+        ResourceType::HINFO => ResourceData::parse_host_info(buf)?,
+        ResourceType::MINFO => ResourceData::parse_mail_info(buf)?,
+        ResourceType::MX => ResourceData::parse_mail_exchange(buf)?,
+        ResourceType::TXT => ResourceData::parse_text(buf)?,
     };
 
     Ok((
@@ -554,7 +561,7 @@ pub fn parse_resource_record(value: &[u8]) -> Result<(ResourceRecord, usize), Re
             time_to_live,
             data,
         },
-        length,
+        record_offset,
     ))
 }
 

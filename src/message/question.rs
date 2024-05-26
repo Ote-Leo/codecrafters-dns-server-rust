@@ -95,10 +95,12 @@ pub fn parse_question(value: &[u8]) -> Result<(Question, usize), QuestionParseEr
     use QuestionParseError::{MissingClass, MissingTypeAndClass};
 
     let mut buf = value;
+    let mut question_offset;
 
     // reading labels
     let (name, offset) = parse_label(buf)?;
     buf = &buf[offset..];
+    question_offset = offset;
 
     // reading type and class
     let typ;
@@ -111,8 +113,9 @@ pub fn parse_question(value: &[u8]) -> Result<(Question, usize), QuestionParseEr
             class = buf.get_u16().try_into()?;
         }
     }
+    question_offset += 4;
 
-    Ok((Question { name, typ, class }, (buf.len() - buf.remaining())))
+    Ok((Question { name, typ, class }, question_offset))
 }
 
 impl TryFrom<&[u8]> for Question {
