@@ -28,6 +28,7 @@ fn main() -> anyhow::Result<()> {
     args.next();
 
     let resolver = read_resolver(args);
+    eprintln!("resolver: {resolver:?}");
 
     loop {
         match udp_socket.recv_from(&mut buf) {
