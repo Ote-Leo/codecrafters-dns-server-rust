@@ -527,7 +527,7 @@ pub fn parse_resource_record(value: &[u8]) -> Result<(ResourceRecord, usize), Re
     let time_to_live = buf.get_u32();
     record_offset += 4;
 
-    let mut length = buf.get_u16() as usize;
+    let length = buf.get_u16() as usize;
     record_offset += 2;
 
     assert!(length <= buf.remaining());
