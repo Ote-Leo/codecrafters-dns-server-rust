@@ -107,7 +107,7 @@ impl From<Label> for Vec<u8> {
     fn from(value: Label) -> Self {
         let mut buf = vec![];
 
-        let last = value.0.last().map(Clone::clone);
+        let last = value.0.last().cloned();
 
         for string in value.0.into_iter() {
             let bytes: Vec<u8> = string.into();
